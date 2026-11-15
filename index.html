@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>프로젝트 골든타임 · 5번 재난·뉴스 데모</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="golden-time-news.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: #131933; color: #e8ecf8; font-family: "Jua", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  #stage { position: relative; width: min(100%, calc((100vh - 110px) * 16 / 9)); aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; container-type: inline-size; background: #cfe0f7; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45); }
+  #stage > .inner { position: absolute; inset: 0; font-size: clamp(9px, 1.3cqi, 17px); color: #1f2a44; }
+  .office { position: absolute; inset: -2%; width: 104%; height: 104%; background: url(img/office.jpg) center / cover; filter: blur(1.5px); transition: filter 0.6s; }
+  #stage[data-quake="1"] .office { background-image: url(img/disaster.jpg); }
+  #stage[data-phase="night"] .office { filter: blur(1.5px) brightness(0.5) saturate(0.8); }
+
+  .hud { position: absolute; top: 2.4%; left: 2%; right: 2%; display: flex; gap: 0.7em; align-items: center; }
+  .logo { background: linear-gradient(180deg, #4d62b5, #27336b); color: #fff; border-radius: 0.9em; padding: 0.3em 0.9em; line-height: 1.15; box-shadow: inset 0 0.1em 0 rgba(255, 255, 255, 0.35), 0 0.2em 0 #141a3d, 0 0.6em 0.8em rgba(10, 16, 50, 0.4); }
+  .logo small { display: block; font-size: 0.7em; opacity: 0.8; } .logo b { font-weight: 400; font-size: 1.15em; } .logo b i { font-style: normal; color: #ffc94a; }
+  .pill { background: linear-gradient(180deg, #5a6aa6, #2b3766); color: #fff; border-radius: 99em; padding: 0.35em 1em; white-space: nowrap; box-shadow: inset 0 0.1em 0 rgba(255, 255, 255, 0.3), 0 0.18em 0 #141a3d, 0 0.5em 0.7em rgba(10, 16, 50, 0.35); }
+  .pill.day { background: linear-gradient(180deg, #ff8286, #dc3d43); box-shadow: inset 0 0.1em 0 rgba(255, 255, 255, 0.45), 0 0.18em 0 #8f1f24, 0 0.5em 0.7em rgba(10, 16, 50, 0.35); }
+  #ticker { flex: 1; min-width: 0; }
+  .hud button { border: 0; border-radius: 99em; padding: 0.35em 1em; font: inherit; cursor: pointer; background: #fff; color: #2b3a67; box-shadow: 0 0.15em 0 rgba(43, 58, 103, 0.15); }
+
+  .center { position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%); width: 86%; text-align: center; }
+  .cta { border: 0; border-radius: 99em; font: inherit; font-size: 1.5em; padding: 0.55em 1.8em; cursor: pointer; color: #1f2a44; text-shadow: 0 0.06em 0 rgba(255, 255, 255, 0.6); background: linear-gradient(180deg, #fff3b0 0%, #ffd640 48%, #ffc21f 52%, #f5a800 100%); box-shadow: inset 0 0.16em 0 rgba(255, 255, 255, 0.75), inset 0 -0.2em 0.3em rgba(150, 90, 0, 0.25), 0 0.3em 0 #b97a00, 0 0.9em 1.4em rgba(10, 16, 50, 0.45); }
+  .cta:hover { filter: brightness(1.05); } .cta:active { transform: translateY(0.12em); }
+  .cta-sub { margin: 0.8em 0 0; color: #2b3a67; background: rgba(255, 255, 255, 0.85); display: inline-block; border-radius: 99em; padding: 0.25em 1.2em; font-size: 0.95em; }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9em; text-align: left; margin-bottom: 1em; }
+  .tab { background: linear-gradient(180deg, #ffffff, #eef2ff); border: 0.14em solid #fff; border-radius: 1.2em; padding: 0.7em 0.8em 0.8em; box-shadow: 0 0.35em 0 #b9c6ee, 0 1em 1.4em rgba(10, 16, 50, 0.4); border-top: 0.45em solid #4f86f0; }
+  .tab:nth-child(2) { border-top-color: #3fa565; } .tab:nth-child(3) { border-top-color: #7b5cc4; }
+  .tab h3 { margin: 0 0 0.1em; font-weight: 400; font-size: 1.1em; } .tab p { margin: 0 0 0.5em; font-size: 0.78em; color: #64718f; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  .opts { display: flex; flex-direction: column; gap: 0.3em; }
+  .opts button { text-align: left; border: 0.14em solid #dbe3f2; background: #f6f8fd; border-radius: 0.7em; padding: 0.4em 0.7em; font: inherit; font-size: 0.88em; cursor: pointer; color: inherit; }
+  .opts button[aria-pressed="true"] { border-color: #2b3a67; background: #e7edff; }
+  .opts button::before { content: "○ "; } .opts button[aria-pressed="true"]::before { content: "● "; }
+  button:focus-visible { outline: 3px solid #ffc94a; outline-offset: 2px; }
+
+  #board { position: absolute; left: 2%; right: 2%; bottom: 2.6%; display: none; grid-template-columns: repeat(4, 1fr) auto; gap: 1.2em; align-items: center; background: linear-gradient(180deg, #ffffff, #eef2ff); border: 0.14em solid #fff; border-radius: 1.1em; padding: 0.6em 1.1em; box-shadow: 0 0.32em 0 #b9c6ee, 0 0.9em 1.2em rgba(10, 16, 50, 0.4); }
+  #board.on { display: grid; }
+  #board .lab { display: flex; justify-content: space-between; font-size: 0.82em; } #board .lab b { font-weight: 400; color: #4a6fb5; }
+  #board .bar { height: 0.55em; background: #e2e8f5; border-radius: 99em; overflow: hidden; margin-top: 0.2em; } #board .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8fb8f0, #4a6fb5); transition: width 0.8s; }
+  #board .tot { text-align: right; line-height: 1.15; } #board .tot strong { font-weight: 400; font-size: 1.7em; color: #c98a00; } #board .tot small { display: block; font-size: 0.72em; color: #64718f; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; font-size: 14px; color: #a9b4d6; }
+  .controls button { font: inherit; cursor: pointer; border-radius: 99em; border: 1px solid #4b578a; background: #232c55; color: #e8ecf8; padding: 6px 14px; }
+  .controls button:hover { background: #2f3a6c; }
+  .note { margin: 0; font-size: 13px; color: #8d99bd; text-align: center; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; max-width: 70ch; }
+</style>
+</head>
+<body>
+<div id="stage" data-phase="morning">
+  <div class="office" aria-hidden="true"></div>
+  <div class="inner">
+    <div class="hud">
+      <div class="logo"><small>조달청</small><b>프로젝트 <i>골든타임</i></b></div>
+      <span class="pill day" id="hud-day"></span><span class="pill" id="hud-budget"></span>
+      <div id="ticker"></div>
+      <button type="button" id="archive">📰 지난 뉴스</button>
+    </div>
+    <div class="center" id="center"></div>
+    <div id="board" aria-live="polite"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <span>빠른 선택:</span>
+  <button type="button" data-preset="0">모두 잘함</button><button type="button" data-preset="1">모두 보통</button><button type="button" data-preset="2">모두 못함</button>
+  <button type="button" id="reset">↺ 처음부터</button>
+</div>
+<p class="note">공모전 출품용으로 만든 가상의 게임 화면입니다. 해원시와 지진, 뉴스는 모두 지어낸 내용이며 실제 기관의 발표가 아닙니다. 5번(재난·뉴스) 모듈만 따로 돌려 보는 데모입니다. 사무실 배경과 업무 카드는 임시이고, 실제 게임에서는 1번 화면과 2·3·4번 탭의 결과가 그 자리를 대신합니다. 뉴스 안에서는 ← → 키로 쪽을 넘길 수 있습니다.</p>
+
+<script src="golden-time-news.js"></script>
+<script>
+(function () {
+  // 6번 golden-time-system.js와 같은 메서드 이름을 가진 임시 세션. 실제 통합에서는 system.createSession()을 쓴다.
+  function createMockSession() {
+    var s = { day: 1, days: 5, budget: 3000, finished: false, dailyResults: [], pendingMorningOutcomes: [], disaster: { active: false, progress: 0, status: "", objectives: [] } };
+    function copy() { return JSON.parse(JSON.stringify(s)); }
+    function applyDisaster(o) {
+      if (o.disasterStatus) s.disaster.status = o.disasterStatus;
+      (o.disasterMetrics || []).forEach(function (m) { var t = s.disaster.objectives.find(function (x) { return x.id === m.id; }); if (t) t.achieved = m.achieved; });
+      var list = s.disaster.objectives;
+      if (list.length) s.disaster.progress = Math.round(list.reduce(function (a, x) { return a + Math.min((x.achieved || 0) / x.target, 1); }, 0) / list.length * 100);
+    }
+    return {
+      getState: copy,
+      beginDisaster: function (status, objectives) { s.disaster = { active: true, progress: 0, status: status, objectives: objectives.map(function (o) { return Object.assign({ achieved: 0 }, o); }) }; return copy(); },
+      queueMorningOutcome: function (outcome, id) { if (!s.pendingMorningOutcomes.some(function (p) { return p.id === id; })) s.pendingMorningOutcomes.push({ id: id, outcome: outcome }); return copy(); },
+      applyMorningOutcomes: function () { s.pendingMorningOutcomes.forEach(function (p) { s.budget += p.outcome.budgetDelta || 0; applyDisaster(p.outcome); }); s.pendingMorningOutcomes = []; return copy(); },
+      closeDay: function () { s.dailyResults.push({ day: s.day, budget: s.budget }); if (s.day >= s.days) s.finished = true; else s.day += 1; return copy(); }
+    };
+  }
+
+  var WORK = [
+    { key: "contract", title: "📋 나라장터 계약 심사", desc: "오늘 접수된 입찰 3건을 심사했다면?", opts: [
+      ["부실 업체를 모두 걸러냄", { correct: 3 }], ["적격 업체 1곳을 잘못 반려", { correct: 2, ordinaryWrong: 1 }], ["유령업체 2곳을 승인", { correct: 1, falseApproval: 2 }]] },
+    { key: "reserve", title: "🏗️ 원자재 비축 관리", desc: "복구에 필요한 자재를 얼마나 확보했다면?", opts: [
+      ["필요량을 모두 확보", { fulfillment: 1 }], ["절반 정도 확보", { fulfillment: 0.55 }], ["거의 확보하지 못함", { fulfillment: 0.15 }]] },
+    { key: "innovation", title: "💡 혁신제품 지원", desc: "운송 드론 기업의 지원 요청에?", opts: [
+      ["제대로 지원해 성과를 냄", { decision: "success" }], ["일부만 지원", { decision: "partial" }], ["지원하지 않음", { decision: "failure" }]] }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var stage = $("stage"), session, news, phase, choice = [0, 0, 0];
+
+  function render() {
+    var g = session.getState();
+    stage.dataset.phase = phase === "night" ? "night" : "day";
+    stage.dataset.quake = g.disaster.active ? "1" : "0";
+    $("hud-day").textContent = g.day + "일차" + (g.disaster.active ? " · D+" + (g.day - 1) : "");
+    $("hud-budget").textContent = "💰 예산 " + g.budget.toLocaleString() + "억 원";
+    news.mountTicker($("ticker"), g.day);
+    var board = $("board");
+    board.classList.toggle("on", g.disaster.active && phase !== "night"); // 지진 전에는 재난 진척도를 숨긴다
+    if (g.disaster.active) {
+      if (phase === "done") { // 5일차 밤 결과는 다음 날로 넘기지 않으므로 엔딩 뉴스의 최종 수치를 그대로 보여 준다
+        var fin = news.getNightNews(news.days);
+        g.disaster.objectives = fin.metrics; g.disaster.progress = fin.progress; g.disaster.status = fin.status;
+      }
+      board.innerHTML = g.disaster.objectives.map(function (o) {
+        return '<div><div class="lab"><span>' + o.label + "</span><b>" + (o.achieved || 0) + "/" + o.target + '</b></div><div class="bar"><i style="width:' + Math.min((o.achieved || 0) / o.target, 1) * 100 + '%"></i></div></div>';
+      }).join("") + '<div class="tot"><strong>' + g.disaster.progress + "%</strong><small>" + g.disaster.status + "</small></div>";
+    }
+    var c = $("center");
+    if (phase === "morning") {
+      c.innerHTML = '<button type="button" class="cta" id="go">☀️ ' + g.day + '일차 출근하기</button><br><p class="cta-sub">달이가 아침 뉴스를 준비했어요</p>';
+    } else if (phase === "work") {
+      c.innerHTML = '<div class="tabs">' + WORK.map(function (w, i) {
+        return '<div class="tab"><h3>' + w.title + "</h3><p>" + w.desc + '</p><div class="opts">' + w.opts.map(function (o, k) {
+          return '<button type="button" data-w="' + i + '" data-k="' + k + '" aria-pressed="' + (choice[i] === k) + '">' + o[0] + "</button>";
+        }).join("") + "</div></div>";
+      }).join("") + '</div><button type="button" class="cta" id="go">🌙 퇴근하기</button>';
+    } else if (phase === "done") {
+      c.innerHTML = '<button type="button" class="cta" id="again">↺ 다시 도전하기</button><br><p class="cta-sub">선택을 바꾸면 뉴스와 결말이 달라져요</p>';
+    } else c.innerHTML = "";
+    var go = $("go"); if (go) go.focus();
+  }
+
+  function start() {
+    stage.querySelectorAll(".gtn-overlay").forEach(function (el) { el.remove(); });
+    session = createMockSession();
+    // 기사 사진: 팀 디자인 시트의 배경 그림 3장을 잘라 쓴다. 나머지 장면은 내장 삽화.
+    var photos = { quake: "img/disaster.jpg", bridge: "img/disaster.jpg", warehouse: "img/warehouse.jpg", office: "img/office.jpg" };
+    // 달이·시민: 3D 렌더 이미지 (img 폴더). 표정별로 한 장씩.
+    var face = function (id) { var f = function (m) { return "img/" + id + "-" + m + ".png"; }; return { joy: f("happy"), relief: f("happy"), worry: f("worry"), upset: f("upset"), angry: f("upset") }; };
+    var art = {
+      scenes: photos,
+      dari: { happy: "img/dari-happy.png", calm: "img/dari-calm.png", worry: "img/dari-worry.png", sad: "img/dari-sad.png" },
+      citizens: { evacuee: face("evacuee"), driver: face("driver"), nurse: face("nurse") }
+    };
+    news = GoldenTimeNews.create({ session: session, mount: stage, storage: null, assets: art });
+    news.reset();
+    choice = [0, 0, 0]; phase = "morning"; render();
+  }
+
+  $("center").addEventListener("click", function (e) {
+    var opt = e.target.closest("[data-w]");
+    if (opt) { choice[+opt.dataset.w] = +opt.dataset.k; return render(); }
+    if (e.target.closest("#again")) return start();
+    if (!e.target.closest("#go")) return;
+    var day = session.getState().day;
+    if (phase === "morning") {
+      phase = "busy"; render();
+      news.playMorning().then(function () { phase = "work"; render(); });
+    } else if (phase === "work") {
+      var inputs = {}; WORK.forEach(function (w, i) { inputs[w.key] = w.opts[choice[i]][1]; });
+      news.reportDay(day, inputs);   // 2·3·4번 결과 전달
+      session.closeDay();            // 6번 정산
+      phase = "night"; render();
+      news.playNight({ day: day }).then(function () { phase = day >= news.days ? "done" : "morning"; render(); });
+    }
+  });
+  document.querySelectorAll("[data-preset]").forEach(function (b) {
+    b.addEventListener("click", function () { var k = +b.dataset.preset; choice = [k, k, k]; if (phase === "work") render(); });
+  });
+  $("archive").addEventListener("click", function () { if (phase === "morning" || phase === "work" || phase === "done") news.openArchive(); });
+  $("reset").addEventListener("click", start);
+  start();
+})();
+</script>
+</body>
+</html>
