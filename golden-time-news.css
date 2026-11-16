@@ -396,3 +396,14 @@ img.gtn-scene { object-fit: cover; }
 .gtn-face { overflow: hidden; }
 .gtn-face img { width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; object-position: 50% 18%; border-radius: 0; }
 img.gtn-dari { width: 112%; max-width: none; }
+
+/* Balanced navigation labels and padded, responsive market sparklines. */
+.gtn-overlay .gtn-next,.gtn-overlay .gtn-prev{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:2.65em;padding:.58em 1.45em;line-height:1.2;text-align:center;vertical-align:middle;font-family:var(--body);white-space:nowrap}.gtn-overlay .gtn-foot{align-items:center}.gtn-overlay .gtn-market{min-width:0;grid-template-columns:repeat(2,minmax(0,1fr))}.gtn-overlay .gtn-market li{min-width:0;grid-template-columns:minmax(0,1fr) minmax(0,4.8em);column-gap:.6em;padding:.65em .85em;overflow:visible}.gtn-overlay .gtn-market li b{min-width:0}.gtn-overlay .gtn-spark{display:block;align-self:center;justify-self:end;width:100%;max-width:4.8em;height:auto;aspect-ratio:72 / 32;min-width:0;overflow:visible}.gtn-overlay .gtn-market-name{min-width:0}.gtn-overlay .gtn-market li em{margin:0;line-height:1.3}@media(max-width:500px){.gtn-overlay .gtn-market li{padding:.6em;grid-template-columns:minmax(0,1fr) minmax(0,4em)}.gtn-overlay .gtn-next,.gtn-overlay .gtn-prev{padding:.6em 1em}}
+
+/* Explicit recovery reuses the original WebAudio effects. */
+.gtn-meta{flex-wrap:wrap}.gtn-recovery{position:relative;display:inline-flex}.gtn-overlay .gtn-reconnect{padding:.4em .7em;border:1px solid #aebfe5;border-radius:1em;background:#f4f7ff;color:#283961;font-size:.7em;line-height:1.3;white-space:nowrap}.gtn-reconnect-status{position:absolute;top:calc(100% + .6em);right:0;z-index:20;width:18em;max-width:60vw;padding:.7em 1em;border:1px solid #aebfe5;border-radius:.7em;background:#26375c;color:#fff;box-shadow:0 .3em .8em #0003;font-size:.75em;line-height:1.5}
+
+.gtn-reconnect-status audio{display:block;width:100%;height:38px}.gtn-reconnect-status>span{display:block;margin-top:.5em}
+
+/* Optical vertical centering: account for Korean glyph metrics and the raised lower edge. */
+.gtn-overlay .gtn-next{display:inline-flex;align-items:center;justify-content:center;padding-top:.76em;padding-bottom:.4em;line-height:1.2;text-align:center}

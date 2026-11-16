@@ -81,7 +81,19 @@ news.openArchive();                 // "지난 뉴스" 버튼에 연결
 - 5일차 밤 결과는 규칙대로 큐에 넣지 않습니다. 엔딩 화면에 최종 재난 수치가 필요하면 `news.getNightNews(5)`의 `metrics`, `progress`를 쓰세요.
 - 효과음을 아예 끄려면 `create({ sound: false })`.
 
+## 팀 통합 현황 (11/16 기준)
+
+- **1번 채린님**의 [koss-up-ui](https://github.com/odidoddixb/koss-up-ui)가 이 모듈을 `modules/`에 넣어 메인 화면·2번·6번과 연결해 돌리고 있습니다(3·4번은 추가 연결 예정). 그 과정에서 채린님이 고친 아래 항목을 이 레포에도 같은 내용으로 반영했습니다.
+  - `reportDay`의 `contract`에 `unresolved`(미처리 건수)를 넣을 수 있음. 전체 건수에 포함됩니다.
+  - 시황 그래프 끝 점이 잘리던 문제(좌표와 여백) 수정
+  - 5일차(엔딩) 지도 쪽 달이 대사에서 "내일"이 나오던 문제 수정
+  - Safari에서 소리가 끊기던 문제 보완(`interrupted` 복구, 닫힌 컨텍스트 재생성), 뉴스 상단 "소리 다시 연결" 버튼, `news.resumeSound()` 추가
+  - 이전/다음 버튼 글자 가운데 정렬
+- **4번 서린님**은 `news.reportDay(day, { innovation: { decision } })`로 결과를 넘깁니다. 1일차 드론은 3일차에 결과가 확정되므로 1일차에 넘기는 값은 잠정 판단입니다.
+- **6번 서윤님**의 [golden-time-system.js](https://github.com/seoyoon-riley/26-KOSS-UP)가 공개돼 실제로 붙여 봤습니다. `createSession`으로 5일을 돌리며 `beginDisaster`, `queueMorningOutcome`, `applyMorningOutcomes`, `closeDay`를 모두 호출했고 오류 없이 끝까지 진행됩니다(Node 로직 검증, 화면 제외).
+- 알아둘 차이: 시스템의 `disaster.progress`는 소수(예: 3.5)이고 뉴스 화면은 반올림한 정수(4)라 최대 0.5%p 다를 수 있습니다. 메인 화면에서 둘을 같이 보여 줄 때만 신경 쓰면 됩니다.
+
 ## 아직 확인하지 못한 것
 
-- `golden-time-system.js` 저장소가 비공개라 실제 6번 코드와는 붙여 보지 못했습니다. 연동 문서(TEAM_HANDOFF, GAME_SYSTEM_INTEGRATION)의 메서드 이름과 형식에 맞췄고, 데모는 같은 이름의 임시 세션으로 돌립니다.
-- 달이(표정 4종)와 시민 3명(표정 3종씩)은 이미지 생성 AI로 만든 3D 렌더 그림이고 `img/`에 있습니다. 데모(`index.html`)가 `assets`로 연결하는 방법을 보여 줍니다. `assets`를 생략하면 코드로 그린 내장 그림이 나옵니다. 기사 사진 일부는 팀 디자인 시트의 배경 그림을 잘라 썼습니다.
+- 실제 Mac Safari 스피커 출력은 확인하지 못했습니다(채린님 쪽도 같은 상태).
+- 달이·시민 그림은 이미지 생성 AI로 만든 3D 렌더이고, 기사 사진 일부는 팀 디자인 시트의 배경 그림을 잘라 썼습니다. 해상도가 낮아 원본 파일이 있으면 `img/`에 바꿔 넣으면 됩니다.

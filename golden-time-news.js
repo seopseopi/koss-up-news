@@ -231,7 +231,7 @@
     const c = raw.contract;
     if (c) {
       const ok = num(c.correct, 0), wrong = num(c.ordinaryWrong, 0), fake = num(c.falseApproval, 0);
-      const total = ok + wrong + fake;
+      const total = ok + wrong + fake + num(c.unresolved, 0);
       if (total > 0) out.contractQ = clamp((ok - 0.5 * fake) / total, 0, 1);
       out.falseApprovals = fake;
     }
@@ -434,6 +434,7 @@
       news.headline = { tag: "특집", scene: e.rank === "bad" ? "quake" : e.rank === "best" ? "sunrise" : "city", title: "[재난 대응 종합] " + e.title, body: e.body };
       news.dariMood = { best: "happy", normal: "calm", bad: "sad" }[e.rank];
       news.dari[0] = "닷새간의 재난 대응을 종합해 전해 드릴게요.";
+      news.dari[2] = "해원시의 복구 상황을 함께 확인해 봐요.";
       news.dari[3] = { best: "정말 멋졌어요, 주무관님! 해원시가 다시 웃고 있어요.", normal: "수고했어요. 다음엔 더 많은 시민을 지킬 수 있을 거예요.", bad: "아쉬움이 크지만, 무엇이 중요했는지 알게 됐어요. 다시 도전해 봐요!" }[e.rank];
     }
     return news;
@@ -668,11 +669,11 @@
   }
 
   function sparkSvg(history, change) {
-    if (history.length < 2) return '<svg class="gtn-spark" viewBox="0 0 60 22" aria-hidden="true"><path d="M2 11h56" stroke="#b9c6de" stroke-width="2" stroke-dasharray="3 4"/></svg>';
+    if (history.length < 2) return '<svg class="gtn-spark" viewBox="0 0 72 32" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M6 16h60" stroke="#b9c6de" stroke-width="2" stroke-dasharray="3 4"/></svg>';
     const lo = Math.min.apply(null, history) - 3, hi = Math.max.apply(null, history) + 3;
-    const pts = history.map((v, i) => [2 + (i * 56) / (history.length - 1), 20 - ((v - lo) / (hi - lo)) * 18]);
+    const pts = history.map((v, i) => [6 + (i * 60) / (history.length - 1), 26 - ((v - lo) / (hi - lo)) * 20]);
     const color = change > 0 ? "#e5484d" : change < 0 ? "#2f6fd0" : "#8fa3c7", last = pts[pts.length - 1];
-    return '<svg class="gtn-spark" viewBox="0 0 60 22" aria-hidden="true"><path d="M' + pts.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L") + '" stroke="' + color + '" stroke-width="2.200" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + last[0] + '" cy="' + last[1].toFixed(1) + '" r="2.800" fill="' + color + '"/></svg>';
+    return '<svg class="gtn-spark" viewBox="0 0 72 32" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M' + pts.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L") + '" stroke="' + color + '" stroke-width="2.200" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + last[0] + '" cy="' + last[1].toFixed(1) + '" r="2.800" fill="' + color + '"/></svg>';
   }
 
   function historySvg(history) {
@@ -692,12 +693,15 @@
   /* ═════════════ 4. 효과음 (WebAudio, 파일 불필요) ═════════════ */
 
   const Sound = (function () {
-    let ctx = null, muted = false, enabled = true;
+    let ctx = null, muted = false, enabled = true, resuming = null;
     function ac() {
       if (!enabled || muted || typeof window === "undefined") return null;
       try {
-        if (!ctx) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; ctx = new A(); }
-        if (ctx.state === "suspended") ctx.resume();
+        if (!ctx || ctx.state === "closed") { resuming = null; const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; ctx = new A(); }
+        if ((ctx.state === "suspended" || ctx.state === "interrupted") && !resuming) {
+          const pending = Promise.resolve(ctx.resume()); resuming = pending;
+          pending.finally(() => { if (resuming === pending) resuming = null; }).catch(() => {});
+        }
         return ctx;
       } catch (e) { return null; }
     }
@@ -726,9 +730,26 @@
       tick() { tone(1200, 0, 0.03, "square", 0.02); }
     };
     return {
-      play(name) { if (fx[name]) fx[name](); },
-      setMuted(v) { muted = !!v; }, isMuted: () => muted,
-      setEnabled(v) { enabled = !!v; }
+      play(name) {
+        if (typeof window !== "undefined" && window.GoldenTimeAudio && window.GoldenTimeAudio.isActive()) { window.GoldenTimeAudio.play(name).catch(() => {}); return; }
+        const c = ac(); if (!c || !fx[name]) return;
+        if (resuming) resuming.then(() => { if (ctx === c && enabled && !muted) fx[name](); }).catch(() => {});
+        else fx[name]();
+      },
+      reconnect() {
+        if (typeof window !== "undefined" && window.GoldenTimeAudio) { enabled = true; muted = false; return window.GoldenTimeAudio.reconnect(); }
+        const previous = ctx; ctx = null; resuming = null; enabled = true; muted = false;
+        if (previous && previous.state !== "closed" && previous.close) { try { Promise.resolve(previous.close()).catch(() => {}); } catch (e) {} }
+        const c = ac();
+        if (!c) return Promise.reject(new Error("이 브라우저에서 오디오를 시작하지 못했어요."));
+        return Promise.resolve(resuming).then(() => {
+          if (c !== ctx || c.state !== "running") throw new Error("브라우저가 오디오 시작을 허용하지 않았어요.");
+          fx.chime(); return c.state;
+        });
+      },
+      resume() { if (typeof window !== "undefined" && window.GoldenTimeAudio && window.GoldenTimeAudio.isActive()) { window.GoldenTimeAudio.prime(); return; } return ac(); },
+      setMuted(v) { muted = !!v; if (typeof window !== "undefined" && window.GoldenTimeAudio) window.GoldenTimeAudio.setMuted(v); }, isMuted: () => muted,
+      setEnabled(v) { enabled = !!v; if (typeof window !== "undefined" && window.GoldenTimeAudio) window.GoldenTimeAudio.setEnabled(v); }
     };
   })();
 
@@ -871,6 +892,25 @@
       const all = [news.headline].concat(news.articles);
       let cur = -1, lead = 0, finished = false;
       const seen = {};
+      /* sound-recovery-ui */
+      const recovery = document.createElement("span"); recovery.className = "gtn-recovery";
+      recovery.innerHTML = '<button type="button" class="gtn-reconnect">소리 다시 연결</button><span class="gtn-reconnect-status" role="status" hidden></span>';
+      el.querySelector(".gtn-meta").appendChild(recovery);
+      const reconnectBtn = recovery.querySelector("button"), reconnectStatus = recovery.querySelector("[role=status]");
+      reconnectBtn.addEventListener("click", () => {
+        reconnectBtn.disabled = true; reconnectStatus.hidden = true;
+        if (typeof window !== "undefined" && window.GoldenTimeAudio) {
+          reconnectStatus.textContent = ""; reconnectStatus.appendChild(window.GoldenTimeAudio.player()); reconnectStatus.hidden = false;
+        }
+        Sound.reconnect().then(() => {
+          setMuteIcon(); if (opts.onMute) opts.onMute(false);
+          if (!window.GoldenTimeAudio) reconnectStatus.textContent = "확인음 재생 요청을 보냈어요.";
+        }).catch((error) => { const message = document.createElement("span"); message.textContent = "재생 실패: " + error.message; reconnectStatus.appendChild(message); }).finally(() => {
+          reconnectBtn.disabled = false; reconnectStatus.hidden = false;
+        });
+      });
+      /* end-sound-recovery-ui */
+
 
       function setLead(i) {
         if (!leadBox) return;
@@ -915,7 +955,7 @@
       el.addEventListener("click", (e) => {
         const t = e.target;
         if (t.closest(".gtn-intro")) return el.querySelector(".gtn-intro").remove();
-        if (t.closest(".gtn-mute")) { Sound.setMuted(!Sound.isMuted()); setMuteIcon(); if (opts.onMute) opts.onMute(Sound.isMuted()); return; }
+        if (t.closest(".gtn-mute")) { Sound.setMuted(!Sound.isMuted()); if (!Sound.isMuted()) Sound.resume(); setMuteIcon(); if (opts.onMute) opts.onMute(Sound.isMuted()); return; }
         const item = t.closest(".gtn-item");
         if (item) { Sound.play("tick"); return setLead(Number(item.dataset.i) === lead ? 0 : Number(item.dataset.i)); }
         if (t.closest(".gtn-back")) return setLead(0);
@@ -988,6 +1028,7 @@
     const write = (k, v) => { try { if (storage) storage.setItem(k, v); } catch (e) { /* 저장 실패는 진행을 막지 않는다 */ } };
     let st = Object.assign(freshState(), JSON.parse(read(key) || "null") || {});
     const save = () => write(key, JSON.stringify(st));
+    if (st.nights[DAYS]) { st.nights[DAYS].dari[2] = "해원시의 복구 상황을 함께 확인해 봐요."; save(); }
     Sound.setEnabled(opts.sound !== false);
     Sound.setMuted(read(key + "-muted") === "1");
 
@@ -1108,6 +1149,7 @@
       /** 1번 화면에 지도를 직접 그리고 싶을 때: 현재까지의 재난 현황 지도 SVG 문자열 */
       getMapSvg(day) { const n = st.nights[day || Math.max(1, today() - 1)]; return n ? mapSvg(n.metrics) : ""; },
 
+      resumeSound() { Sound.resume(); },
       setMuted(v) { Sound.setMuted(v); write(key + "-muted", v ? "1" : "0"); },
       /** 새 게임을 시작할 때 부른다. */
       reset() { st = freshState(); try { if (storage) storage.removeItem(key); } catch (e) { /* 무시 */ } },
