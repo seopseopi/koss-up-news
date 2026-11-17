@@ -74,6 +74,7 @@ await news.playNight({ day });      // 5일차는 엔딩 뉴스
 news.openArchive();                 // "지난 뉴스" 버튼에 연결
 ```
 
+- **마치지 못한 업무**는 마감할 때 `news.reportDay(day, { incomplete: ["reserve", "innovation"] })`처럼 알려 주세요(비축은 `reserve`, 혁신제품 지원은 `innovation`). 알리지 않으면 전날 값이나 6번 점수를 물려받아, 비축을 안 했는데 "비축 창고 즉시 방출, 잘했어요"가 나옵니다. 나중에 그 업무 결과를 `reportDay`로 보내면 미완료 표시는 풀립니다. 계약은 `contract.unresolved`(미처리 건수)로 알립니다.
 - `reportDay`를 안 부른 항목은 6번 점수(청렴도·경제 방어력·혁신 기여도) → 전날 값 → 중간값 순으로 대신 씁니다.
 - 3번이 쓸 시황: `news.getMarket(day)` → `[{ id: "steel", label: "철강", index: 118, change: 18, history: [100, 118] }, ...]`
 - 화면 없이 데이터만: `news.getMorningNews(day)`, `news.getNightNews(day)`, `news.getHints(day)`, `news.getMapSvg(day)`

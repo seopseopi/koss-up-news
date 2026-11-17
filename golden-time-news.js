@@ -135,6 +135,7 @@
       good: ["검증된 업체 납품 순조…첫 구호물품 {d} 세트 출발", "생수·담요 {d} 세트 대피소 도착…\"심사가 빨랐다\"", "여진에도 납품 이상 무…누적 {a} 세트", "임시주거 물품 계약도 '깨끗'…{d} 세트 추가 도착", "마지막까지 원칙 심사…구호물품 누적 {a} 세트"],
       mid: ["구호물품 첫 수송 일부 지연…적격 업체 탈락 여파", "담요는 왔는데 식수가 없다…품목별 납품 엇박자", "\"멀쩡한 업체까지 탈락\" 오늘 {d} 세트만 도착", "재입찰에 하루 허비…구호물품 누적 {a} 세트", "막판 납품 몰렸지만 누적 {a} 세트에 그쳐"],
       bad: ["구호 계약 '구멍'…첫날 밤 도착 물품 {d} 세트뿐", "납품 업체 못 정해 창고 텅…대피소 '빈손'", "계약 심사 혼선 계속…오늘도 {d} 세트뿐", "나흘째 물품 부족…대피소 떠나는 시민들", "끝내 메우지 못한 구호 공백…누적 {a} 세트"],
+      pending: ["미처리 서류에 발목 잡힌 첫 구호 계약…{d} 세트만 출발", "손도 못 댄 서류 {u}건…구호물품 {d} 세트만 도착", "심사 못 한 서류가 쌓였다…오늘 {d} 세트뿐", "미결 서류 {u}건에 임시주거 계약 지연…누적 {a} 세트", "마지막 날 남은 서류 {u}건…구호물품 누적 {a} 세트"],
       fake: ["[단독] 주소지는 빈 사무실…유령업체가 따낸 구호 계약", "[단독] 상자 열어보니 '불량 담요'…{x} 세트 회수", "[단독] 판박이 견적 업체와 계약…담합 수사 착수", "[단독] 납품업체 '실체 없음'…구호물품 {x} 세트 회수", "[단독] 막판 대형 계약에 부실 업체…{x} 세트 회수"]
     },
     reserve: {
@@ -153,6 +154,7 @@
       good: "심사에서 부실 업체를 걸러낸 덕분에 불량 없이 물품이 제때 도착했습니다. 누적 {a} 세트가 대피소에 전달됐습니다.",
       mid: "적격 업체가 심사에서 떨어지면서 납품이 늦어진 품목이 있습니다. 오늘 {d} 세트, 누적 {a} 세트가 도착했습니다.",
       bad: "계약 심사가 흔들리면서 납품할 업체가 제대로 정해지지 않았습니다. 대피소 곳곳에서 물품 부족을 호소합니다.",
+      pending: "심사하지 못한 서류 {u}건이 남아 그 계약의 납품이 시작되지 못했습니다. 오늘 {d} 세트, 누적 {a} 세트가 도착했습니다.",
       fake: "서류만 갖춘 업체 {f}곳이 계약을 따낸 사실이 드러났습니다. 불량 물품 {x} 세트가 회수돼 그만큼 대피소 공급이 줄었습니다."
     },
     reserve: {
@@ -227,7 +229,9 @@
    */
   function normalizeInputs(raw) {
     raw = raw || {};
-    const out = { contractQ: null, reserveQ: null, innovationQ: null, falseApprovals: 0 };
+    const out = { contractQ: null, reserveQ: null, innovationQ: null, falseApprovals: 0, incomplete: [] };
+    // 호스트가 "오늘 이 업무를 마치지 못했다"고 알리면 앞날 값을 물려받지 않고 실패로 처리한다.
+    if (Array.isArray(raw.incomplete)) out.incomplete = raw.incomplete.filter((k) => k === "reserve" || k === "innovation");
     const c = raw.contract;
     if (c) {
       const ok = num(c.correct, 0), wrong = num(c.ordinaryWrong, 0), fake = num(c.falseApproval, 0);
@@ -328,11 +332,13 @@
     const v = raw && raw[key];
     if (key === "contract") {
       if (!v) return "오늘 심사 기록이 없어요";
-      const ok = num(v.correct, 0), wrong = num(v.ordinaryWrong, 0), fake = num(v.falseApproval, 0);
-      return "심사 " + (ok + wrong + fake) + "건 · 정확 " + ok + "건" + (wrong ? " · 오반려 " + wrong + "건" : "") + (fake ? " · 부실 승인 " + fake + "건" : "");
+      const ok = num(v.correct, 0), wrong = num(v.ordinaryWrong, 0), fake = num(v.falseApproval, 0), un = num(v.unresolved, 0);
+      return "심사 " + (ok + wrong + fake + un) + "건 · 정확 " + ok + "건" + (wrong ? " · 오반려 " + wrong + "건" : "") + (fake ? " · 부실 승인 " + fake + "건" : "") + (un ? " · 미처리 " + un + "건" : "");
     }
-    if (key === "reserve") return v ? "필요한 자재의 " + Math.round(r.q.reserveQ * 100) + "% 확보" : "오늘 비축 기록이 없어요";
-    if (v && v.decision) return { success: "지원한 혁신제품이 성과를 냈어요", partial: "일부만 지원해 성과가 제한적이에요", failure: "지원에 실패했거나 기회를 놓쳤어요" }[v.decision];
+    const inc = (raw && raw.incomplete) || [];
+    if (key === "reserve") return inc.indexOf("reserve") >= 0 ? "오늘 비축 업무를 마치지 못했어요" : v ? "필요한 자재의 " + Math.round(r.q.reserveQ * 100) + "% 확보" : "오늘 비축 기록이 없어요";
+    if (key === "innovation" && inc.indexOf("innovation") >= 0) return r.droneLevel > 0 ? "오늘은 새 지원을 정하지 못했어요 · 앞서 지원한 기업은 활약 중" : "오늘 지원 결정을 마치지 못했어요";
+    if (v && v.decision) return { success: "혁신제품 판단이 좋은 결과로 이어졌어요", partial: "판단이 절반의 성과에 그쳤어요", failure: "판단이 성과로 이어지지 못했어요" }[v.decision];
     if (v && typeof v.drone === "boolean") return v.drone ? "운송 드론 기업을 지원했어요" : "운송 드론 지원을 보류했어요";
     return r.droneLevel > 0 ? "앞서 지원한 기업이 활약 중이에요" : "오늘 지원 평가가 없어요";
   }
@@ -342,14 +348,14 @@
     const m = {}; r.metrics.forEach((x) => { m[x.id] = x; });
     const idx = r.day - 1, raw = st.raw[r.day] || {};
     const defs = [
-      { key: "contract", metric: m["relief-supplies"], t: r.q.falseApprovals > 0 ? "fake" : tier(r.q.contractQ), scenes: { good: "truck", mid: "truck", bad: "warehouse", fake: "office" } },
+      { key: "contract", metric: m["relief-supplies"], t: r.q.falseApprovals > 0 ? "fake" : num(raw.contract && raw.contract.unresolved, 0) > 0 && tier(r.q.contractQ) !== "good" ? "pending" : tier(r.q.contractQ), scenes: { good: "truck", mid: "truck", bad: "warehouse", fake: "office", pending: "office" } },
       { key: "reserve", metric: m["routes"], t: tier(r.q.reserveQ), scenes: { good: "bridge", mid: "bridge", bad: "warehouse" } },
       { key: "innovation", metric: m["drone-deliveries"], t: droneTier(r.droneLevel), scenes: { good: "drone", mid: "drone", bad: "mountain" } }
     ];
     return defs.map((d, i) => {
       const money = d.key === "contract";
-      const vars = { d: money ? sets(d.metric.delta) : d.metric.delta, a: money ? sets(d.metric.achieved) : d.metric.achieved, x: sets(r.defect), f: r.q.falseApprovals, n: d.metric.target - d.metric.achieved };
-      const t3 = d.t === "fake" ? "bad" : d.t;
+      const vars = { d: money ? sets(d.metric.delta) : d.metric.delta, a: money ? sets(d.metric.achieved) : d.metric.achieved, x: sets(r.defect), f: r.q.falseApprovals, u: num(raw.contract && raw.contract.unresolved, 0), n: d.metric.target - d.metric.achieved };
+      const t3 = d.t === "fake" ? "bad" : d.t === "pending" ? "mid" : d.t;
       const person = CITIZENS[d.key];
       const quote = r.day === QUAKE.day && person.first ? person.first[t3] : pick(person.quotes[t3], r.day + i);
       const face = t3 === "good" ? (r.satisfaction >= 80 ? "joy" : "relief") : t3 === "mid" ? "worry" : r.satisfaction < 28 ? "angry" : "upset";
@@ -1053,10 +1059,14 @@
       reportDay(day, raw) {
         raw = raw || {};
         const n = normalizeInputs(raw), cur = st.inputs[day] || {};
+        const inc = new Set((st.raw[day] && st.raw[day].incomplete) || []);
         ["contractQ", "reserveQ", "innovationQ"].forEach((k) => { if (n[k] != null) cur[k] = n[k]; });
         if (raw.contract) cur.falseApprovals = n.falseApprovals;
+        n.incomplete.forEach((k) => { const qk = k === "reserve" ? "reserveQ" : "innovationQ"; if (cur[qk] == null) { cur[qk] = 0; inc.add(k); } });
+        ["reserve", "innovation"].forEach((k) => { if (raw[k]) inc.delete(k); }); // 나중에 결과가 들어오면 미완료 표시를 푼다
         st.inputs[day] = cur;
         st.raw[day] = Object.assign(st.raw[day] || {}, clone(raw));
+        st.raw[day].incomplete = Array.from(inc);
         save(); return clone(cur);
       },
 
