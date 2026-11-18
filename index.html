@@ -99,8 +99,8 @@
       ["부실 업체를 모두 걸러냄", { correct: 3 }], ["적격 업체 1곳을 잘못 반려", { correct: 2, ordinaryWrong: 1 }], ["유령업체 2곳을 승인", { correct: 1, falseApproval: 2 }]] },
     { key: "reserve", title: "🏗️ 원자재 비축 관리", desc: "복구에 필요한 자재를 얼마나 확보했다면?", opts: [
       ["필요량을 모두 확보", { fulfillment: 1 }], ["절반 정도 확보", { fulfillment: 0.55 }], ["거의 확보하지 못함", { fulfillment: 0.15 }]] },
-    { key: "innovation", title: "💡 혁신제품 지원", desc: "운송 드론 기업의 지원 요청에?", opts: [
-      ["제대로 지원해 성과를 냄", { decision: "success" }], ["일부만 지원", { decision: "partial" }], ["지원하지 않음", { decision: "failure" }]] }
+    { key: "innovation", title: "💡 혁신제품 지원", desc: "그날 기업의 지원 요청에 대한 판단은?", opts: [
+      ["좋은 판단 (성공)", { decision: "success" }], ["절반의 판단 (부분 성공)", { decision: "partial" }], ["잘못된 판단 (실패)", { decision: "failure" }]] }
   ];
 
   var $ = function (id) { return document.getElementById(id); };

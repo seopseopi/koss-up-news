@@ -45,6 +45,40 @@
     innovation: { label: "혁신제품 지원", icon: "💡", effect: "의료·생활 지원" }
   };
 
+  /*
+   * 4번(혁신제품) 기업 목록. 4번은 결정 결과만 넘기므로(success/partial/failure) 지원했는지 거절했는지는 여기서 추정한다.
+   * quality가 bad인 제품은 "거절"이 success이고, 나머지는 "지원"이 success·partial이다.
+   * 드론 이야기(고립 마을 지원)는 1일차 드론 기업의 결정에서만 나온다. 2~5일차는 그날 기업의 제품 기사가 나온다.
+   */
+  const INNOVATION = {
+    1: { id: "drone", name: "운송 드론", quality: "good" },
+    2: { id: "comms", name: "이동형 통신장비", quality: "good", scene: "shelter" },
+    3: { id: "medical", name: "AI 진단 의료기기", quality: "bad", scene: "office" },
+    4: { id: "bridge", name: "교량 균열 센서", quality: "limited", scene: "bridge" },
+    5: { id: "water", name: "이동형 정수장치", quality: "good", scene: "shelter" }
+  };
+  const INNOVATION_NEWS = {
+    2: {
+      good: ["이동형 통신장비 투입…끊겼던 대피소와 현장 본부가 연결됐다", "조달청이 시범구매한 이동형 중계기가 설치되면서 대피소 38곳 중 상당수가 현장 본부와 다시 통화할 수 있게 됐습니다."],
+      mid: ["통신장비 일부만 도입…연결된 대피소는 절반 수준", "시범구매 규모가 작아 중계기 설치가 일부 대피소에 그쳤습니다. 나머지는 여전히 무전에 의존합니다."],
+      bad: ["통신장비 도입 무산…대피소 곳곳이 연락 두절", "이동형 통신장비를 들이지 못해 끊긴 통신망은 그대로입니다. 현장 본부와 대피소 사이 연락이 오가지 못하고 있습니다."]
+    },
+    3: {
+      good: ["검증 안 된 진단 장비 도입 보류…안전을 지킨 판단", "인허가와 임상 근거가 확인되지 않은 AI 진단 의료기기를 현장에 들이지 않기로 했습니다. 오진 위험을 사전에 막았다는 평가입니다."],
+      mid: ["진단 장비 일부만 도입…현장은 쓸지 말지 망설인다", "근거가 부족한 장비를 제한적으로 들였습니다. 현장에서는 결과를 믿어도 되는지 확신하지 못하고 있습니다."],
+      bad: ["인허가 없는 진단 장비 도입…오진 논란에 현장 투입 중단", "검증되지 않은 AI 진단 의료기기를 시범구매했다가 판정 오류가 잇따라 보고되면서 투입이 멈췄습니다."]
+    },
+    4: {
+      good: ["교량 균열 센서 시범 설치…위험 구간을 미리 잡아냈다", "조달청이 시범구매한 센서가 손상된 교량의 균열 징후를 포착해 통행 제한 구간을 정확히 정했습니다."],
+      mid: ["교량 센서 도입은 했지만…현장 적용에는 한계", "시험실 성능만 확인된 센서를 전면 도입한 탓에 지진 피해 구간에서는 오작동이 이어졌습니다. 예산 부담도 커졌습니다."],
+      bad: ["센서 없이 눈으로 점검…교량 위험 구간 놓칠 뻔", "교량 균열 센서를 들이지 않아 점검 인력이 직접 살펴야 했습니다. 복구 속도가 더뎌지고 있습니다."]
+    },
+    5: {
+      good: ["이동형 정수장치 가동…대피소에 깨끗한 식수가 나온다", "공인 수질 시험을 통과한 정수장치가 대피소에 설치돼 하루 수천 명이 안심하고 마실 물을 확보했습니다."],
+      mid: ["정수장치 일부 가동…식수 공급은 아직 빠듯하다", "정수장치가 일부 대피소에만 설치돼 물 부족이 완전히 풀리지 않았습니다."],
+      bad: ["정수장치 도입 놓쳐…대피소 식수난 계속", "이동형 정수장치를 들이지 못해 생수 공급에만 의존하고 있습니다. 위생 문제를 걱정하는 목소리가 커집니다."]
+    }
+  };
   const MORNING = {
     1: {
       tag: "속보", scene: "city",
@@ -75,7 +109,7 @@
       hints: {
         contract: "긴급 계약이 쏟아져요. 급할수록 실제 사업장을 확인해요.",
         reserve: "값이 뛰었지만 내일 더 오를 수 있어요. 필요한 만큼은 확보해요.",
-        innovation: "고립 마을 10곳에 닿을 수단이 필요해요."
+        innovation: "오늘은 이동형 통신장비 제안이에요. 끊긴 대피소 연락을 이을 수 있는지 봐요."
       },
       dari: ["큰일이에요…! 밤사이 해원시에 큰 지진이 났어요.", "지금부터는 한 건 한 건이 시민들의 하루를 바꿔요. 힘내요!"]
     },
@@ -101,13 +135,13 @@
       body: "이재민들이 사흘째 체육관에서 지내고 있습니다. 정부는 임시주거 단지를 짓기로 했고 목재와 단열재 수요가 급증하고 있습니다.",
       articles: [
         { cat: "경제", scene: "market", title: "목재 30% 넘게 올라 '품귀'…철강·경유는 진정세", body: "임시주거 자재가 부족합니다. 조달청은 규격이 확인된 대체 자재 조합도 검토하고 있습니다." },
-        { cat: "혁신", scene: "drone", title: "재난 현장서 혁신제품 재조명", body: "조립식 주택, 이동형 정수 장치 등 중소기업 제품의 지원 요청이 이어집니다. 검증되지 않은 제품도 섞여 있어 선별이 필요합니다." }
+        { cat: "혁신", scene: "bridge", title: "재난 현장서 혁신제품 재조명", body: "교량 균열 센서 등 중소기업 제품의 시범구매 요청이 이어집니다. 시험실에서만 검증된 제품도 있어 현장 적용 가능성을 따져야 합니다." }
       ],
       ticker: ["임시주거 800동 건설 계획 발표", "", "내일 해외 수입 자재 입항"],
       hints: {
         contract: "임시주거 자재 계약이 시작돼요. 납품 실적을 확인해요.",
         reserve: "목재가 품귀예요. 규격이 확인된 대체 조합을 검토해요.",
-        innovation: "조립식 주택·정수 장치 제안 중에 옥석을 가려요."
+        innovation: "교량 균열 센서는 시험실 성능만 확인됐어요. 현장에서도 통할지 따져 봐요."
       },
       dari: ["이재민분들이 많이 지쳤대요. 따뜻한 집이 필요해요.", "이제는 복구 단계! 필요한 자재가 바뀌었으니 시황을 다시 확인해요."]
     },
@@ -123,7 +157,7 @@
       hints: {
         contract: "금액이 큰 복구 공사예요. 한 건의 실수가 크게 돌아와요.",
         reserve: "가격이 내려가요. 남는 재고는 예산 부담이에요.",
-        innovation: "마지막 지원 기회예요. 당장 현장에 투입할 수 있는지 봐요."
+        innovation: "마지막 제안은 이동형 정수장치예요. 공인 시험 결과를 확인해요."
       },
       dari: ["벌써 마지막 날이에요. 여기까지 정말 수고했어요!", "끝까지 원칙대로! 오늘 밤 뉴스에서 결과를 함께 봐요."]
     }
@@ -197,6 +231,11 @@
         good: ["드론이 인슐린을 내려줬을 때 다들 박수 쳤어요.", "고립 마을 환자 처방약이 오늘 도착했습니다.", "이제 약이 떨어질 걱정은 덜었어요."],
         mid: ["드론이 오긴 하는데 하루 한 번이라 빠듯해요.", "급한 약부터 나눠 쓰고 있습니다.", "헬기 순서를 기다리는 환자가 아직 있어요."],
         bad: ["산 너머 마을엔 사흘째 약이 못 들어갔어요.", "헬기는 날씨 때문에 못 뜬대요. 방법이 없습니다.", "환자를 업고 내려오는 수밖에 없었어요."]
+      },
+      generic: {
+        good: ["올바른 판단이었다고 생각해요.", "현장이 한결 안심돼요.", "믿고 맡길 수 있겠다는 생각이 들어요."],
+        mid: ["절반은 풀렸는데 아직 모자라요.", "조금만 더 나아졌으면 좋겠어요.", "기대만큼은 아니에요."],
+        bad: ["아쉬운 결정이에요.", "현장은 여전히 불편해요.", "다른 선택이었다면 좋았을 텐데요."]
       },
       first: { good: "내일부터 드론으로 약이 온다니 버텨 볼게요.", mid: "드론이 몇 대라도 온다니 다행이에요.", bad: "산 너머 마을엔 약이 들어갈 길이 없어요." }
     }
@@ -296,8 +335,10 @@
     OBJECTIVES.forEach((o) => { base[o.id] = 0; });
     if (prev) prev.metrics.forEach((m) => { base[m.id] = m.achieved; });
 
-    // 한 번 키운 기업은 계속 조력자로 남는다 (최고 수준 유지)
-    st.droneLevel = Math.max(st.droneLevel || 0, q.innovationQ);
+    // 드론은 1일차 기업의 결정으로만 정해진다. 한 번 지원한 드론은 계속 활약한다.
+    if (day === 1) st.droneLevel = q.innovationQ;
+    // 복구에 보태지는 혁신 효과: 1일차는 드론, 그 뒤로는 드론과 그날 기업의 결과를 반반 반영한다.
+    const innovEff = day === 1 ? st.droneLevel : 0.5 * st.droneLevel + 0.5 * q.innovationQ;
     const supply = 0.3 + 0.7 * (0.6 * q.contractQ + 0.4 * q.reserveQ);
 
     let reliefGain = Math.round(PERFECT.relief[idx] * supply);
@@ -311,7 +352,7 @@
     st.droneAcc = (st.droneAcc || 0) + (st.droneLevel > 0 ? PERFECT.drone[idx] * st.droneLevel : day >= 3 ? 0.5 : 0);
     const drone = clamp(Math.floor(st.droneAcc + 1e-9), 0, 10);
 
-    const cityQ = (clamp((supply - 0.3) / 0.7, 0, 1) + q.reserveQ + st.droneLevel) / 3;
+    const cityQ = (clamp((supply - 0.3) / 0.7, 0, 1) + q.reserveQ + innovEff) / 3;
     const cityGain = Math.round(PERFECT.city[idx] * (0.25 + 0.75 * cityQ));
 
     const achieved = {
@@ -323,9 +364,16 @@
     const metrics = OBJECTIVES.map((o) => ({ id: o.id, label: o.label, icon: o.icon, target: o.target, unit: o.unit, achieved: achieved[o.id], prev: base[o.id], delta: achieved[o.id] - base[o.id] }));
     const progress = progressOf(metrics);
     const satisfaction = Math.round(clamp(
-      28 + 62 * (0.35 * q.contractQ + 0.3 * q.reserveQ + 0.2 * st.droneLevel + 0.15 * (progress / 100)) - 9 * q.falseApprovals, 5, 98));
+      28 + 62 * (0.35 * q.contractQ + 0.3 * q.reserveQ + 0.2 * innovEff + 0.15 * (progress / 100)) - 9 * q.falseApprovals, 5, 98));
     const mood = satisfaction >= 80 ? "joy" : satisfaction >= 62 ? "relief" : satisfaction >= 45 ? "worry" : satisfaction >= 28 ? "upset" : "angry";
     return { day, q, droneLevel: st.droneLevel, metrics, progress, satisfaction, mood, defect };
+  }
+
+  /** 2~5일차 혁신 카드의 기사. 마치지 못했으면 결과 대신 "결정을 못 내렸다"는 기사가 나온다. */
+  function productCopy(product, day, t3, raw, part) {
+    const inc = (raw && raw.incomplete) || [];
+    if (inc.indexOf("innovation") >= 0) return part === 0 ? product.name + " 지원 결정 못 내려…현장 도입 무산" : "마감 전까지 결정이 나지 않아 " + product.name + " 도입이 무산됐습니다.";
+    return INNOVATION_NEWS[day][t3][part];
   }
 
   function inputText(key, raw, r) {
@@ -337,10 +385,10 @@
     }
     const inc = (raw && raw.incomplete) || [];
     if (key === "reserve") return inc.indexOf("reserve") >= 0 ? "오늘 비축 업무를 마치지 못했어요" : v ? "필요한 자재의 " + Math.round(r.q.reserveQ * 100) + "% 확보" : "오늘 비축 기록이 없어요";
-    if (key === "innovation" && inc.indexOf("innovation") >= 0) return r.droneLevel > 0 ? "오늘은 새 지원을 정하지 못했어요 · 앞서 지원한 기업은 활약 중" : "오늘 지원 결정을 마치지 못했어요";
+    if (key === "innovation" && inc.indexOf("innovation") >= 0) return "오늘 지원 결정을 마치지 못했어요";
     if (v && v.decision) return { success: "혁신제품 판단이 좋은 결과로 이어졌어요", partial: "판단이 절반의 성과에 그쳤어요", failure: "판단이 성과로 이어지지 못했어요" }[v.decision];
     if (v && typeof v.drone === "boolean") return v.drone ? "운송 드론 기업을 지원했어요" : "운송 드론 지원을 보류했어요";
-    return r.droneLevel > 0 ? "앞서 지원한 기업이 활약 중이에요" : "오늘 지원 평가가 없어요";
+    return "오늘 지원 평가가 없어요";
   }
 
   /** 업무 3개 각각의 "내 선택 → 현장 결과 → 시민 반응" */
@@ -348,22 +396,24 @@
     const m = {}; r.metrics.forEach((x) => { m[x.id] = x; });
     const idx = r.day - 1, raw = st.raw[r.day] || {};
     const defs = [
-      { key: "contract", metric: m["relief-supplies"], t: r.q.falseApprovals > 0 ? "fake" : num(raw.contract && raw.contract.unresolved, 0) > 0 && tier(r.q.contractQ) !== "good" ? "pending" : tier(r.q.contractQ), scenes: { good: "truck", mid: "truck", bad: "warehouse", fake: "office", pending: "office" } },
+      { key: "contract", metric: m["relief-supplies"], t: r.q.falseApprovals > 0 ? "fake" : num(raw.contract && raw.contract.unresolved, 0) > 0 ? "pending" : tier(r.q.contractQ), scenes: { good: "truck", mid: "truck", bad: "warehouse", fake: "office", pending: "office" } },
       { key: "reserve", metric: m["routes"], t: tier(r.q.reserveQ), scenes: { good: "bridge", mid: "bridge", bad: "warehouse" } },
-      { key: "innovation", metric: m["drone-deliveries"], t: droneTier(r.droneLevel), scenes: { good: "drone", mid: "drone", bad: "mountain" } }
+      { key: "innovation", metric: m["drone-deliveries"], t: r.day === 1 ? droneTier(r.droneLevel) : tier(r.q.innovationQ), scenes: { good: "drone", mid: "drone", bad: "mountain" } }
     ];
     return defs.map((d, i) => {
       const money = d.key === "contract";
       const vars = { d: money ? sets(d.metric.delta) : d.metric.delta, a: money ? sets(d.metric.achieved) : d.metric.achieved, x: sets(r.defect), f: r.q.falseApprovals, u: num(raw.contract && raw.contract.unresolved, 0), n: d.metric.target - d.metric.achieved };
       const t3 = d.t === "fake" ? "bad" : d.t === "pending" ? "mid" : d.t;
       const person = CITIZENS[d.key];
-      const quote = r.day === QUAKE.day && person.first ? person.first[t3] : pick(person.quotes[t3], r.day + i);
+      const product = d.key === "innovation" && r.day > 1 ? INNOVATION[r.day] : null; // 2~5일차 혁신 카드는 그날 기업 이야기
+      const quote = product ? pick(person.generic[t3], r.day) : r.day === QUAKE.day && person.first ? person.first[t3] : pick(person.quotes[t3], r.day + i);
       const face = t3 === "good" ? (r.satisfaction >= 80 ? "joy" : "relief") : t3 === "mid" ? "worry" : r.satisfaction < 28 ? "angry" : "upset";
       return {
         key: d.key, tab: TABS[d.key].label, icon: TABS[d.key].icon, tier: t3, tierText: TIER_TEXT[t3],
         input: inputText(d.key, raw, r), cat: { contract: "계약", reserve: "경제", innovation: "혁신" }[d.key],
-        tone: t3 === "good" ? "good" : t3 === "mid" ? "neutral" : "bad", scene: d.scenes[d.t],
-        title: fill(NIGHT_TITLES[d.key][d.t][idx], vars), body: fill(NIGHT_BODIES[d.key][d.t], vars),
+        tone: t3 === "good" ? "good" : t3 === "mid" ? "neutral" : "bad", scene: product ? product.scene : d.scenes[d.t],
+        title: product ? productCopy(product, r.day, t3, raw, 0) : fill(NIGHT_TITLES[d.key][d.t][idx], vars),
+        body: product ? productCopy(product, r.day, t3, raw, 1) : fill(NIGHT_BODIES[d.key][d.t], vars),
         metric: { id: d.metric.id, label: d.metric.label, achieved: d.metric.achieved, target: d.metric.target, delta: d.metric.delta, unit: d.metric.unit },
         citizen: { id: person.id, name: person.name, role: person.role, mood: face, quote }
       };

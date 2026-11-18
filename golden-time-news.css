@@ -407,3 +407,7 @@ img.gtn-dari { width: 112%; max-width: none; }
 
 /* Optical vertical centering: account for Korean glyph metrics and the raised lower edge. */
 .gtn-overlay .gtn-next{display:inline-flex;align-items:center;justify-content:center;padding-top:.76em;padding-bottom:.4em;line-height:1.2;text-align:center}
+
+/* 좁은 화면에서 헤더 제목이 두 줄로 꺾이지 않게 한다. */
+.gtn-overlay .gtn-brand strong { white-space: nowrap; }
+@container (max-width: 720px) { .gtn-overlay .gtn-head { flex-wrap: wrap; row-gap: 0.4em; } .gtn-overlay .gtn-meta { flex-wrap: wrap; } }
